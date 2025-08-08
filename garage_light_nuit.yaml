@@ -1,8 +1,9 @@
 blueprint:
-  name: Allumer lumière extérieure à ouverture porte garage (nuit)
+  name: Allumer interrupteur extérieur à ouverture porte garage (nuit)
   description: >
-    Allume une lumière quand la porte de garage s'ouvre, uniquement dans la plage
-    15 min avant coucher du soleil → 15 min après lever du soleil, puis éteint après un délai.
+    Allume un interrupteur (lumière extérieure) quand la porte de garage s'ouvre,
+    uniquement dans la plage 15 min avant coucher du soleil → 15 min après lever du soleil,
+    puis éteint après un délai.
   domain: automation
   input:
     door_sensor:
@@ -11,15 +12,15 @@ blueprint:
       selector:
         entity:
           domain: binary_sensor
-    target_light:
-      name: Lumière extérieure
-      description: Sélectionnez la lumière à contrôler
+    target_switch:
+      name: Interrupteur extérieur
+      description: Sélectionnez l'interrupteur à contrôler
       selector:
         entity:
-          domain: light
+          domain: switch
     delay_minutes:
       name: Durée avant extinction
-      description: Nombre de minutes avant que la lumière s’éteigne
+      description: Nombre de minutes avant que l'interrupteur s’éteigne
       default: 2
       selector:
         number:
@@ -44,13 +45,13 @@ condition:
         before_offset: "00:15:00"
 
 action:
-  - service: light.turn_on
+  - service: switch.turn_on
     target:
-      entity_id: !input target_light
+      entity_id: !input target_switch
   - delay:
       minutes: !input delay_minutes
-  - service: light.turn_off
+  - service: switch.turn_off
     target:
-      entity_id: !input target_light
+      entity_id: !input target_switch
 
 mode: restart
