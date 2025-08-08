@@ -1,8 +1,8 @@
 blueprint:
-  name: Allumer interrupteur extérieur à ouverture porte garage (nuit)
+  name: Allumer interrupteur extérieur à ouverture porte garage (conditions soleil paramétrables)
   description: >
-    Allume un interrupteur (lumière extérieure) quand la porte de garage s'ouvre,
-    uniquement dans la plage 15 min avant coucher du soleil → 15 min après lever du soleil,
+    Allume un interrupteur (ex. lumière extérieure) à l'ouverture de la porte de garage,
+    uniquement selon les conditions de lever/coucher du soleil définies par l'utilisateur,
     puis éteint après un délai.
   domain: automation
   input:
@@ -25,9 +25,41 @@ blueprint:
       selector:
         number:
           min: 1
-          max: 30
+          max: 60
           unit_of_measurement: minutes
           mode: slider
+    enable_after_sunset:
+      name: Activer après coucher du soleil
+      description: Active la condition "après le coucher du soleil"
+      default: true
+      selector:
+        boolean:
+    sunset_offset:
+      name: Décalage coucher du soleil (minutes)
+      description: Décalage par rapport au coucher du soleil (négatif = avant, positif = après)
+      default: -15
+      selector:
+        number:
+          min: -120
+          max: 120
+          step: 1
+          unit_of_measurement: minutes
+    enable_before_sunrise:
+      name: Activer avant lever du soleil
+      description: Active la condition "avant le lever du soleil"
+      default: true
+      selector:
+        boolean:
+    sunrise_offset:
+      name: Décalage lever du soleil (minutes)
+      description: Décalage par rapport au lever du soleil (négatif = avant, positif = après)
+      default: 15
+      selector:
+        number:
+          min: -120
+          max: 120
+          step: 1
+          unit_of_measurement: minutes
 
 trigger:
   - platform: state
@@ -37,12 +69,16 @@ trigger:
 condition:
   - condition: or
     conditions:
-      - condition: sun
-        after: sunset
-        after_offset: "-00:15:00"
-      - condition: sun
-        before: sunrise
-        before_offset: "00:15:00"
+      - condition: template
+        value_template: >
+          {% if (enable_after_sunset | default(true)) %}
+          {{ now() >= state_attr('sun.sun', 'next_setting') | as_datetime + timedelta(minutes=sunset_offset | int) }}
+          {% else %} false {% endif %}
+      - condition: template
+        value_template: >
+          {% if (enable_before_sunrise | default(true)) %}
+          {{ now() <= state_attr('sun.sun', 'next_rising') | as_datetime + timedelta(minutes=sunrise_offset | int) }}
+          {% else %} false {% endif %}
 
 action:
   - service: switch.turn_on
